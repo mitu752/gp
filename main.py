@@ -33,9 +33,8 @@ async def lifespan(app: FastAPI):
     global http_client
     http_client = httpx.AsyncClient(
         limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
-        timeout=httpx.Timeout(60.0),
-        # 禁用自动解压缩，保持原始响应格式
-        decompress=False
+        timeout=httpx.Timeout(60.0)
+        # 较老版本的httpx不支持decompress参数
     )
     logger.info("API代理服务已启动，HTTP客户端连接池已初始化")
     yield
@@ -114,9 +113,11 @@ async def proxy_gemini(request: Request, path: str, background_tasks: Background
                 f"请求成功: {path} - {resp.status_code} - {elapsed:.4f}s"
             )
 
-            # 保留所有原始响应头
-            # 只删除会干扰正常响应的头
+            # 保留所有原始响应头，但需要移除content-encoding
+            # 因为httpx会自动解压，但保留原始编码头会导致客户端再次尝试解压
             response_headers = dict(resp.headers)
+            if 'content-encoding' in response_headers:
+                del response_headers['content-encoding']
             
             # 返回流式响应
             return StreamingResponse(
@@ -142,8 +143,8 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=8000,
         workers=4,  # 根据CPU核心数调整
-        # loop="uvloop",  # 更快的事件循环实现
-        # http="httptools",  # 更快的HTTP解析
+        loop="uvloop",  # 更快的事件循环实现
+        http="httptools",  # 更快的HTTP解析
     )
 
 
