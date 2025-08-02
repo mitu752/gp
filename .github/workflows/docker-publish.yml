@@ -28,4 +28,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/proxy:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/gemini-proxy:latest
