@@ -52,3 +52,30 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+
+
+cat > docker-compose.yml << EOF
+version: '3'
+
+services:
+  gemini-proxy:
+    image: mitu752/gemini-proxy:latest
+    container_name: gemini-proxy
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./.env:/app/.env
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+EOF
