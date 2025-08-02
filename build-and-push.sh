@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 定义变量
-USERNAME="mitu752"
+USERNAME="你的用户名"
 IMAGE_NAME="gemini-proxy"
 TAG="latest"
 
