@@ -56,6 +56,35 @@ curl -X POST "http://localhost:3000/v1beta/models/gemini-pro:generateContent" \
      -d '{"stream": false, "contents":[{"parts":[{"text":"讲个笑话"}]}]}'
 ```
 
+# Proxy 项目
+
+这是一个 Python 代理服务项目。
+
+## 快速开始
+
+### 使用 Docker
+
+```bash
+docker pull [your-dockerhub-username]/proxy:latest
+docker run -p 8000:8000 [your-dockerhub-username]/proxy:latest
+```
+
+### 本地开发
+
+1. 安装依赖
+```bash
+pip install -r requirements.txt
+```
+
+2. 运行应用
+```bash
+python app.py
+```
+
+## 构建
+
+项目通过 GitHub Actions 自动构建并推送 Docker 镜像。
+
 # Docker 镜像自动构建与推送
 
 本项目使用GitHub Actions自动构建Docker镜像并推送到GitHub Container Registry。
