@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+  gemini-proxy:
+    build: .
+    image: 你的用户名/gemini-proxy:latest  # 添加镜像名称
+    container_name: gemini-proxy
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./.env:/app/.env
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
