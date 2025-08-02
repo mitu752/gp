@@ -73,13 +73,12 @@ async def proxy_gemini(request: Request, path: str, background_tasks: Background
     body = await request.body()
     headers = dict(request.headers)
     
-    # 删除不需要转发的请求头
-    headers_to_remove = ["host", "connection", "content-length"]
-    for header in headers_to_remove:
-        if header in headers:
-            del headers[header]
+    # 只删除技术上必须删除的请求头
+    # 'host'头必须删除，否则会导致请求发送到错误的服务器
+    if 'host' in headers:
+        del headers['host']
     
-    # 直接使用客户端提供的参数，不添加API密钥
+    # 保留所有客户端提供的参数
     params = dict(request.query_params)
     
     # 构建目标URL
@@ -91,14 +90,16 @@ async def proxy_gemini(request: Request, path: str, background_tasks: Background
     # 使用信号量限制并发请求数
     async with request_semaphore:
         try:
-            # 使用全局HTTP客户端发送请求
-            response = await http_client.request(
+            # 构建请求，准备流式转发
+            req = http_client.build_request(
                 method=request.method,
                 url=target_url,
                 params=params,
                 headers=headers,
                 content=body
             )
+            # 发送请求并获取流式响应
+            resp = await http_client.send(req, stream=True)
             
             # 更新统计信息
             elapsed = time.time() - start_time
@@ -108,15 +109,19 @@ async def proxy_gemini(request: Request, path: str, background_tasks: Background
             # 记录请求信息（异步）
             background_tasks.add_task(
                 logger.info,
-                f"请求成功: {path} - {response.status_code} - {elapsed:.4f}s"
+                f"请求成功: {path} - {resp.status_code} - {elapsed:.4f}s"
             )
+
+            # 保留所有原始响应头
+            # 只删除会干扰正常响应的头
+            response_headers = dict(resp.headers)
             
-            # 返回响应
-            return Response(
-                content=response.content,
-                status_code=response.status_code,
-                headers=dict(response.headers),
-                media_type=response.headers.get("content-type")
+            # 返回流式响应
+            return StreamingResponse(
+                resp.aiter_bytes(),
+                status_code=resp.status_code,
+                headers=response_headers,
+                media_type=resp.headers.get("content-type")
             )
         
         except Exception as e:
@@ -135,6 +140,21 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=8000,
         workers=4,  # 根据CPU核心数调整
-        loop="uvloop",  # 更快的事件循环实现
-        http="httptools",  # 更快的HTTP解析
+        # loop="uvloop",  # 更快的事件循环实现
+        # http="httptools",  # 更快的HTTP解析
     )
+
+
+
+# curl -X POST "http://40.115.195.78:8000/gemini/v1beta/chat/completions" \
+#   -H "Authorization: Bearer AIzaSyAsvOCihOZgSuAEURbBn7F-nAklTAgsmvs" \
+#   -H "Content-Type: application/json" \
+#   -d '{
+#     "model": "gemini-2.5-flash",
+#     "messages": [
+#       {
+#         "role": "user",
+#         "content": "hi"
+#       }
+#     ]
+#   }'
