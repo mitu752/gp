@@ -33,7 +33,9 @@ async def lifespan(app: FastAPI):
     global http_client
     http_client = httpx.AsyncClient(
         limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
-        timeout=httpx.Timeout(60.0)
+        timeout=httpx.Timeout(60.0),
+        # 禁用自动解压缩，保持原始响应格式
+        decompress=False
     )
     logger.info("API代理服务已启动，HTTP客户端连接池已初始化")
     yield
